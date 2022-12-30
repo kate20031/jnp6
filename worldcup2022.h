@@ -44,12 +44,8 @@ public:
     virtual float goThrough() = 0;
 
     // Returns true only if the square was left successfully.
-    virtual bool tryLeave(const String& playerName) {
+    virtual int tryLeave(const String& playerName) {
         // TODO Fix unused parameter warning.
-        return true;
-    }
-
-    virtual int getRoundsLeft(const String& playerName) {
         return 0;
     }
 
@@ -133,32 +129,20 @@ class YellowCardSquare : public SimpleSquare { // TODO: std::map<Player, int>()
 public:
     YellowCardSquare(const String& name, int waitingRounds) :
                                                        SimpleSquare(name, 0, 0), waitingRounds(waitingRounds), waitingRoundsLeft() {}
-    bool tryLeave(const String& playerName) override {
+    int tryLeave(const String& playerName) override {
         auto it = waitingRoundsLeft.find(playerName);
         if (it == waitingRoundsLeft.end()) { // Player starts waiting.
             waitingRoundsLeft[playerName] = waitingRounds;
+            return 3;
         }
         else {
             it -> second--;
             if (it -> second == 0) { // Time to leave.
                 waitingRoundsLeft.erase(it);
-                return true;
             }
         }
-        return false;
+        return it -> second;
     }
-
-    int getRoundsLeft(const String& playerName) override {
-        auto it = waitingRoundsLeft.find(playerName);
-
-        if (it == waitingRoundsLeft.end()) {
-            return 0;
-        }
-        else {
-            return it->second;
-        }
-    }
-
 
 private:
     int waitingRounds;
@@ -304,20 +288,16 @@ public:
         unsigned short score = 0;
         float change;
 
-        bool canLeave = (*squaresIt)->tryLeave(playerName); // Player tries to start.
-        int waitingRoundsLeft = (*squaresIt)->getRoundsLeft(playerName);
-        if (!canLeave) { // Player has to wait.
+        int waitingRoundsLeft = (*squaresIt)->tryLeave(playerName); // Player tries to start.
+//        int waitingRoundsLeft = (*squaresIt)->getRoundsLeft(playerName);
+        if (waitingRoundsLeft != 0) { // Player has to wait.
             status = "*** czekanie " + std::to_string(waitingRoundsLeft) + " ***";
             return;
         }
 
         for (const auto& die : dies) {
             score += die->roll();
-            printf("Graczu %s  wypadło %d\n", playerName.c_str(), score);
         }
-
-        // if (squaresIt)
-        //     std::cerr << "SCORE: " << score << std::endl;
 
         for (int i = 0; i < score && isAlive; i++)
         {
@@ -333,10 +313,9 @@ public:
             printf("%s   %s\n", playerName.c_str(), (*squaresIt)->getName().c_str());
 
             if (i == score - 1) {
-                canLeave = (*squaresIt)->tryLeave(playerName);// Player tries to start.
+                waitingRoundsLeft = (*squaresIt)->tryLeave(playerName);// Player tries to start.
 
-                if (!canLeave) {
-                    waitingRoundsLeft = (*squaresIt)->getRoundsLeft(playerName);
+                if (waitingRoundsLeft != 0) {
                     status = "*** czekanie " + std::to_string(waitingRoundsLeft) + " ***";
 
                     return;
