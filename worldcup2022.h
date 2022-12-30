@@ -384,7 +384,7 @@ public:
         squares.push_back(std::make_shared<YellowCardSquare>(getSquareName(5), 3));
         squares.push_back(std::make_shared<PointsGameSquare>(getSquareName(6), 300));
         squares.push_back(std::make_shared<PointsGameSquare>(getSquareName(7), 280));
-        squares.push_back(std::make_shared<BookmakerSquare>(getSquareName(8), 300, 300));
+        squares.push_back(std::make_shared<BookmakerSquare>(getSquareName(8), 100, 100)); // TODO
         squares.push_back(std::make_shared<PointsGameSquare>(getSquareName(9), 250));
         squares.push_back(std::make_shared<GoalSquare>(getSquareName(10), 120));
         squares.push_back(std::make_shared<FinalGameSquare>(getSquareName(11), 400));
@@ -414,13 +414,15 @@ public:
 
             for (const auto& player : players)
             {
-                if(!player->getIsAlive()) {
-                    deadPlayers.insert(player->getName());
+                if(!player->getIsAlive())
                     continue;
-                }
+
                 player->play();
                 scoreboard->onTurn(player->getName(), player->getStatus(),
                                    player->getSquareName(),player->getMoney());
+                                   
+                if(!player->getIsAlive())
+                    deadPlayers.insert(player->getName());
             }
 
         }
