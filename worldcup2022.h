@@ -102,7 +102,6 @@ public:
                                                                 Square(std::move(name)), winValue(winValue), loseValue(loseValue), playersCounter(0) {}
 
     float stayOn() override {
-        playersCounter = (playersCounter + 1) % 3;
         // Win.
         if (playersCounter == 0) {
             return (float)winValue;
@@ -111,6 +110,7 @@ public:
         else {
             return (float)-loseValue;
         }
+        playersCounter = (playersCounter + 1) % 3;
     }
 
     // Neutral.
@@ -331,9 +331,9 @@ public:
 
             if (change < 0 && money < (unsigned int)(-change)) { // Player went bankrupt :(
                 isAlive = false;
+                money = 0;
                 status = "*** bankrut ***";
             }
-
             else {
                 money += static_cast<unsigned int>(change);
             }
