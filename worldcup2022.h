@@ -1,12 +1,14 @@
 #ifndef WORLDCUP_H
 #define WORLDCUP_H
 
+#include <cstring>
 #include <iostream>
 #include <list>
-#include <memory>
 #include <map>
+#include <memory>
 #include <string>
 #include <unordered_set>
+#include <utility>
 
 // TODO add exceptions!
 // TODO Finish player status (mainly waiting count).
@@ -29,163 +31,179 @@ class Player;
 
 // Abstract class that represents a board field;
 class Square {
-    public:
-        Square(const String& name) : 
-            name(name) {}
+public:
+    explicit Square(String  name) :
+                                 name(std::move(name)) {}
 
-        String getName() {
-            return name;
-        };
+    String getName() {
+        return name;
+    };
 
-        virtual int stayOn() = 0;
+    virtual float stayOn() = 0;
 
-        virtual int goThrough() = 0;
+    virtual float goThrough() = 0;
 
-        // Returns true only if the square was left successfully.
-        virtual bool tryLeave(const String& playerName) {
-            // TODO Fix unused parameter warning.
-            return true;
-        }
+    // Returns true only if the square was left successfully.
+    virtual bool tryLeave(const String& playerName) {
+        // TODO Fix unused parameter warning.
+        return true;
+    }
 
-    private:
-       String name;
+    virtual int getRoundsLeft(const String& playerName) {
+        return 0;
+    }
+
+private:
+    String name;
 };
 
 // Represents a board field;
 class SimpleSquare : public Square {
-    public:
-        SimpleSquare(String name, int stayOnValue, int goThroughValue) : Square(name), 
-            stayOnValue(stayOnValue), goThroughValue(goThroughValue) {}
+public:
+    SimpleSquare(const String& name, int stayOnValue, int goThroughValue) : Square(name),
+                                                                     stayOnValue(stayOnValue), goThroughValue(goThroughValue) {}
 
-        virtual int stayOn() override {
-            return stayOnValue;
-        }
+    float stayOn() override {
+        return (float)stayOnValue;
+    }
 
-        virtual int goThrough() override {
-            return goThroughValue;
-        }
+    float goThrough() override {
+        return (float)goThroughValue;
+    }
 
-    private:
-       int stayOnValue;
-       int goThroughValue;
+private:
+    int stayOnValue;
+    int goThroughValue;
 };
 
 class SeasonBeginningSquare : public SimpleSquare {
-    public:
-        SeasonBeginningSquare(String name) : 
-            SimpleSquare(name, 50, 50) {}
+public:
+    explicit SeasonBeginningSquare(const String& name) :
+                                         SimpleSquare(name, 50, 50) {}
 };
 
 class DayOffSquare : public SimpleSquare {
-    public:
-        DayOffSquare(String name) : 
-            SimpleSquare(name, 0, 0) {}
+public:
+    explicit DayOffSquare(const String& name) :
+                                SimpleSquare(name, 0, 0) {}
 };
 
 class GoalSquare : public SimpleSquare {
-    public:
-        GoalSquare(String name, int goalBonus) : 
-            SimpleSquare(name, goalBonus, 0) {}
+public:
+    GoalSquare(const String& name, int goalBonus) :
+                                             SimpleSquare(name, goalBonus, 0) {}
 };
 
 class PenaltyKickSquare : public SimpleSquare {
-    public:
-        PenaltyKickSquare(String name, int goalkeeperSalary) : 
-            SimpleSquare(name, -goalkeeperSalary, 0) {}
+public:
+    PenaltyKickSquare(const String& name, int goalkeeperSalary) :
+                                                           SimpleSquare(name, -goalkeeperSalary, 0) {}
 };
 
 class BookmakerSquare : public Square {
-    public:
-        BookmakerSquare(String name, int winValue, int loseValue) : 
-            Square(name), winValue(winValue), loseValue(loseValue), playersCounter(0) {}
+public:
+    BookmakerSquare(String name, int winValue, int loseValue) :
+                                                                Square(std::move(name)), winValue(winValue), loseValue(loseValue), playersCounter(0) {}
 
-        int stayOn() override {
-            // Win.
-            if (playersCounter == 0) {
-                return winValue;
-            }
-            // Lose.
-            else {
-                return -loseValue;
-            }
-            playersCounter = (playersCounter + 1) % 3;
+    float stayOn() override {
+        playersCounter = (playersCounter + 1) % 3;
+        // Win.
+        if (playersCounter == 0) {
+            return (float)winValue;
         }
-
-        // Neutral.
-        int goThrough() override {
-            return 0;
+        // Lose.
+        else {
+            return (float)-loseValue;
         }
+    }
 
-    private:
-        int winValue;
-        int loseValue;
-        int playersCounter;
+    // Neutral.
+    float goThrough() override {
+
+        return 0;
+    }
+
+private:
+    int winValue;
+    int loseValue;
+    int playersCounter;
 };
 
 class YellowCardSquare : public SimpleSquare { // TODO: std::map<Player, int>()
-    public:
-        YellowCardSquare(String name, int waitingRounds) : 
-            SimpleSquare(name, 0, 0), waitingRounds(waitingRounds), waitingRoundsLeft() {}
-
-        bool tryLeave(const String& playerName) override {
-            auto it = waitingRoundsLeft.find(playerName);
-            if (it == waitingRoundsLeft.end()) { // Player starts waiting.
-                waitingRoundsLeft[playerName] = waitingRounds;
-            }
-            else {
-                it -> second--;
-                if (it -> second == 0) { // Time to leave.
-                    waitingRoundsLeft.erase(it);
-                    return true;
-                }
-            }
-            return false;
+public:
+    YellowCardSquare(const String& name, int waitingRounds) :
+                                                       SimpleSquare(name, 0, 0), waitingRounds(waitingRounds), waitingRoundsLeft() {}
+    bool tryLeave(const String& playerName) override {
+        auto it = waitingRoundsLeft.find(playerName);
+        if (it == waitingRoundsLeft.end()) { // Player starts waiting.
+            waitingRoundsLeft[playerName] = waitingRounds;
         }
+        else {
+            it -> second--;
+            if (it -> second == 0) { // Time to leave.
+                waitingRoundsLeft.erase(it);
+                return true;
+            }
+        }
+        return false;
+    }
 
-    private:
-        int waitingRounds;
-        std::map<String, int> waitingRoundsLeft;
+    int getRoundsLeft(const String& playerName) override {
+        auto it = waitingRoundsLeft.find(playerName);
+
+        if (it == waitingRoundsLeft.end()) {
+            return 0;
+        }
+        else {
+            return it->second;
+        }
+    }
+
+
+private:
+    int waitingRounds;
+    std::map<String, int> waitingRoundsLeft;
 };
 
 class GameSquare : public Square {
-    public:
-        GameSquare(String name, int fee, float importance) : 
-            Square(name), fee(fee), importance(importance), feeCount(0) {}
+public:
+    GameSquare(String name, int fee, float importance) :
+                                                         Square(std::move(name)), fee(fee), importance(importance), feeCount(0) {}
 
-        int stayOn() override {
-            int tempFeeCount = feeCount;
-            feeCount = 0;
-            return tempFeeCount * fee * importance;
-        }
-        
-        // The player plays the match and pay the fee.
-        int goThrough() override {
-            feeCount++;
-            return -fee;
-        }
+    float stayOn() override {
+        int tempFeeCount = feeCount;
+        feeCount = 0;
+        return (float)(tempFeeCount * fee) * importance;
+    }
 
-    private:
-        int fee;
-        float importance;
-        int feeCount;
+    // The player plays the match and pay the fee.
+    float goThrough() override {
+        feeCount++;
+        return (float)-fee;
+    }
+
+private:
+    int fee;
+    float importance;
+    int feeCount;
 };
 
 class FriendlyGameSquare : public GameSquare {
-    public:
-        FriendlyGameSquare(String name, int fee) :
-            GameSquare(name, fee, 1) {}
+public:
+    FriendlyGameSquare(String name, int fee) :
+                                               GameSquare(std::move(name), fee, 1) {}
 };
 
 class PointsGameSquare : public GameSquare {
-    public:
-        PointsGameSquare(String name, int fee) :
-            GameSquare(name, fee, 2.5) {}
+public:
+    PointsGameSquare(String name, int fee) :
+                                             GameSquare(std::move(name), fee, 2.5) {}
 };
 
 class FinalGameSquare : public GameSquare {
-    public:
-        FinalGameSquare(String name, int fee) :
-            GameSquare(name, fee, 4) {}
+public:
+    FinalGameSquare(String name, int fee) :
+                                            GameSquare(std::move(name), fee, 4) {}
 };
 
 
@@ -252,82 +270,95 @@ public:
 class Board {
 public:
 
-   Board() : squares(), dies() {}
+    Board() : squares(), dies() {}
 
-   Board(std::list<std::shared_ptr<Square>> squares) : squares(squares), dies() {}
+    explicit Board(std::list<std::shared_ptr<Square>> squares) : squares(std::move(squares)), dies() {}
 
-   void addDie(std::shared_ptr<Die> die) {
+    void addDie(const std::shared_ptr<Die>& die) {
         dies.push_back(die);
-   }
+    }
 
-   std::list<std::shared_ptr<Die>> getDies() {
-       return dies;
-   }
-      
-   void addSquare(std::shared_ptr<Square> square) {
-        squares.push_back(square);
-   }
+    std::list<std::shared_ptr<Die>> getDies() {
+        return dies;
+    }
 
-   std::list<std::shared_ptr<Square>> getSquares() {
-       return squares;
-   }
+    std::list<std::shared_ptr<Square>> getSquares() {
+        return squares;
+    }
 
 private:
-   std::list<std::shared_ptr<Square>> squares;
-   std::list<std::shared_ptr<Die>> dies;
+    std::list<std::shared_ptr<Square>> squares;
+    std::list<std::shared_ptr<Die>> dies;
 };
 
 class Player {
 public:
-    Player(String const &playerName, Board &board) : 
-        playerName(playerName), money(INITIAL_MONEY), status("w grze"), indexOfSquare(1), board(board), isAlive(true) {
-            dies = board.getDies();
-            squares = board.getSquares();
-            squaresIt = squares.begin();
-        }
+    Player(String playerName, Board &board) :
+                                                     playerName(std::move(playerName)), money(INITIAL_MONEY), status("w grze"), board(board), isAlive(true) {
+        dies = board.getDies();
+        squares = board.getSquares();
+        squaresIt = squares.begin();
+    }
 
     void play() {
         unsigned short score = 0;
-        int change;
+        float change;
 
-        for (auto die : dies)
+        bool canLeave = (*squaresIt)->tryLeave(playerName); // Player tries to start.
+        int waitingRoundsLeft = (*squaresIt)->getRoundsLeft(playerName);
+        if (!canLeave) { // Player has to wait.
+            status = "*** czekanie " + std::to_string(waitingRoundsLeft) + " ***";
+            return;
+        }
+
+        for (const auto& die : dies) {
             score += die->roll();
+            printf("Graczu %s  wypadło %d\n", playerName.c_str(), score);
+        }
 
         // if (squaresIt)
         //     std::cerr << "SCORE: " << score << std::endl;
 
-        for (int i = 0; i < score && isAlive; i++) 
+        for (int i = 0; i < score && isAlive; i++)
         {
             if (i == 0) {
-                bool canLeave = (*squaresIt)->tryLeave(playerName); // Player tries to start. 
-                if (!canLeave) { // Player have to wait.
-                    status = "*** czekanie ***";
-                    return;
-                }
-                else {
-                    status = "w grze";
-                }
+                status = "w grze";
             }
 
             squaresIt++; // Player goes to the next square in the board.
             if (squaresIt == squares.end()) {
                 squaresIt = squares.begin(); // Board is cyclic.
             }
+//
+            printf("%s   %s\n", playerName.c_str(), (*squaresIt)->getName().c_str());
+
+            if (i == score - 1) {
+                canLeave = (*squaresIt)->tryLeave(playerName);// Player tries to start.
+
+                if (!canLeave) {
+                    waitingRoundsLeft = (*squaresIt)->getRoundsLeft(playerName);
+                    status = "*** czekanie " + std::to_string(waitingRoundsLeft) + " ***";
+
+                    return;
+                }
+            }
 
             if (i == score - 1) { // Player ends his round.
                 change = (*squaresIt)->stayOn();
-            } 
+            }
             else {
                 change = (*squaresIt)->goThrough();
             }
-            
+
             if (change < 0 && money < (unsigned int)(-change)) { // Player went bankrupt :(
-                 isAlive = false;
-                 status = "*** bankrut ***";
+                isAlive = false;
+                status = "*** bankrut ***";
             }
-            else
-                money += change;
-        }    
+
+            else {
+                money += static_cast<unsigned int>(change);
+            }
+        }
     }
 
     String getName() {
@@ -338,7 +369,7 @@ public:
         return (*squaresIt)->getName();
     }
 
-    float getMoney() {
+    unsigned int getMoney() const {
         return money;
     }
 
@@ -346,7 +377,7 @@ public:
         return status;
     }
 
-    bool getIsAlive() {
+    bool getIsAlive() const {
         return isAlive;
     }
 
@@ -354,7 +385,6 @@ private:
     String playerName;
     unsigned int money;
     String status;
-    unsigned short indexOfSquare;
     Board board;
     bool isAlive;
     std::list<std::shared_ptr<Square>>::iterator squaresIt;
@@ -384,7 +414,7 @@ public:
         board = Board(squares);
     }
 
-    ~WorldCup2022() = default;
+    ~WorldCup2022() override = default;
 
     void addDie(std::shared_ptr<Die> die) override {
         board.addDie(die);
@@ -403,7 +433,7 @@ public:
         for (unsigned int i = 1; i <= rounds && deadPlayers.size() < players.size() - 1; i++) {
             scoreboard->onRound(i - 1);
 
-            for (auto player : players)
+            for (const auto& player : players)
             {
                 if(!player->getIsAlive()) {
                     deadPlayers.insert(player->getName());
@@ -413,12 +443,12 @@ public:
                 scoreboard->onTurn(player->getName(), player->getStatus(),
                                    player->getSquareName(),player->getMoney());
             }
-            
+
         }
 
-        std::shared_ptr<Player> winner = NULL;
-        for (auto player : players) {
-            if (winner == NULL || player->getMoney() > winner -> getMoney()) {
+        std::shared_ptr<Player> winner = nullptr;
+        for (const auto& player : players) {
+            if (winner == nullptr || player->getMoney() > winner -> getMoney()) {
                 winner = player;// New potentian winner.
             }
         }
@@ -432,7 +462,7 @@ private:
     std::shared_ptr<ScoreBoard> scoreboard;
     std::unordered_set<String> deadPlayers;
 
-    String getSquareName(int indexOfSquare) noexcept
+    static String getSquareName(int indexOfSquare) noexcept
     {
         switch (indexOfSquare)
         {
