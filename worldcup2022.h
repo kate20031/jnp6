@@ -28,12 +28,40 @@ class Player;
 
 // TODO Add destructors for classes
 
+class DiceException : std::exception {
+public: virtual const char* what() const noexcept = 0;
+};
+
+class PlayerException : std::exception {
+public: virtual const char* what() const noexcept = 0;
+};
+
+class TooManyDiceException : DiceException {
+public: const char* what() const noexcept override {
+        return "Too many dice";
+    }
+};
+class TooFewDiceException : DiceException {
+public: const char* what() const noexcept override {
+        return "Too few dice";
+    }
+};
+class TooManyPlayersException : PlayerException {
+public: const char* what() const noexcept override {
+        return "Too many player";
+    }
+};
+class TooFewPlayersException : PlayerException {
+public: const char* what() const noexcept override {
+        return "Too few player";
+    }
+};
 
 // Abstract class that represents a board field;
 class Square {
 public:
     explicit Square(String  name) :
-                                 name(std::move(name)) {}
+                                   name(std::move(name)) {}
 
     String getName() {
         return name;
@@ -57,7 +85,7 @@ private:
 class SimpleSquare : public Square {
 public:
     SimpleSquare(const String& name, int stayOnValue, int goThroughValue) : Square(name),
-                                                                     stayOnValue(stayOnValue), goThroughValue(goThroughValue) {}
+                                                                            stayOnValue(stayOnValue), goThroughValue(goThroughValue) {}
 
     float stayOn() override {
         return (float)stayOnValue;
@@ -75,25 +103,25 @@ private:
 class SeasonBeginningSquare : public SimpleSquare {
 public:
     explicit SeasonBeginningSquare(const String& name) :
-                                         SimpleSquare(name, 50, 50) {}
+                                                         SimpleSquare(name, 50, 50) {}
 };
 
 class DayOffSquare : public SimpleSquare {
 public:
     explicit DayOffSquare(const String& name) :
-                                SimpleSquare(name, 0, 0) {}
+                                                SimpleSquare(name, 0, 0) {}
 };
 
 class GoalSquare : public SimpleSquare {
 public:
     GoalSquare(const String& name, int goalBonus) :
-                                             SimpleSquare(name, goalBonus, 0) {}
+                                                    SimpleSquare(name, goalBonus, 0) {}
 };
 
 class PenaltyKickSquare : public SimpleSquare {
 public:
     PenaltyKickSquare(const String& name, int goalkeeperSalary) :
-                                                           SimpleSquare(name, -goalkeeperSalary, 0) {}
+                                                                  SimpleSquare(name, -goalkeeperSalary, 0) {}
 };
 
 class BookmakerSquare : public Square {
@@ -128,7 +156,7 @@ private:
 class YellowCardSquare : public SimpleSquare { // TODO: std::map<Player, int>()
 public:
     YellowCardSquare(const String& name, int waitingRounds) :
-                                                       SimpleSquare(name, 0, 0), waitingRounds(waitingRounds), waitingRoundsLeft() {}
+                                                              SimpleSquare(name, 0, 0), waitingRounds(waitingRounds), waitingRoundsLeft() {}
     int tryLeave(const String& playerName) override {
         auto it = waitingRoundsLeft.find(playerName);
         if (it == waitingRoundsLeft.end()) { // Player starts waiting.
@@ -278,7 +306,7 @@ private:
 class Player {
 public:
     Player(String playerName, Board &board) :
-                                                     playerName(std::move(playerName)), money(INITIAL_MONEY), status("w grze"), board(board), isAlive(true) {
+                                              playerName(std::move(playerName)), money(INITIAL_MONEY), status("w grze"), board(board), isAlive(true) {
         dies = board.getDies();
         squares = board.getSquares();
         squaresIt = squares.begin();
@@ -288,8 +316,15 @@ public:
         unsigned short score = 0;
         float change;
 
+        // Count of dies is out of range
+        if (dies.size() < 2) {
+            throw TooFewDiceException();
+        } else if (dies.size() > 2) {
+            throw TooManyDiceException();
+        }
+
         int waitingRoundsLeft = (*squaresIt)->tryLeave(playerName); // Player tries to start.
-//        int waitingRoundsLeft = (*squaresIt)->getRoundsLeft(playerName);
+                                                                   //        int waitingRoundsLeft = (*squaresIt)->getRoundsLeft(playerName);
         if (waitingRoundsLeft != 0) { // Player has to wait.
             status = "*** czekanie " + std::to_string(waitingRoundsLeft) + " ***";
             return;
@@ -298,6 +333,8 @@ public:
         for (const auto& die : dies) {
             score += die->roll();
         }
+
+        printf("%s  wypadło %d\n", playerName.c_str(), score);
 
         for (int i = 0; i < score && isAlive; i++)
         {
@@ -309,7 +346,7 @@ public:
             if (squaresIt == squares.end()) {
                 squaresIt = squares.begin(); // Board is cyclic.
             }
-//
+            //
             printf("%s   %s\n", playerName.c_str(), (*squaresIt)->getName().c_str());
 
             if (i == score - 1) {
@@ -409,6 +446,13 @@ public:
 
     void play(unsigned int rounds) override {
 
+        // Count of players is out of range
+        if (players.size() < 2) {
+            throw TooFewPlayersException();
+        } else if (players.size() > 11) {
+            throw TooManyPlayersException();
+        }
+
         for (unsigned int i = 1; i <= rounds && deadPlayers.size() < players.size() - 1; i++) {
             scoreboard->onRound(i - 1);
 
@@ -420,7 +464,7 @@ public:
                 player->play();
                 scoreboard->onTurn(player->getName(), player->getStatus(),
                                    player->getSquareName(),player->getMoney());
-                                   
+
                 if(!player->getIsAlive())
                     deadPlayers.insert(player->getName());
             }
