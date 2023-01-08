@@ -326,7 +326,7 @@ public:
         int waitingRoundsLeft = (*squaresIt)->tryLeave(playerName); // Player tries to start.
                                                                    //        int waitingRoundsLeft = (*squaresIt)->getRoundsLeft(playerName);
         if (waitingRoundsLeft != 0) { // Player has to wait.
-            status = "*** czekanie " + std::to_string(waitingRoundsLeft) + " ***";
+            status = "*** czekanie: " + std::to_string(waitingRoundsLeft) + " ***";
             return;
         }
 
@@ -353,7 +353,7 @@ public:
                 waitingRoundsLeft = (*squaresIt)->tryLeave(playerName);// Player tries to start.
 
                 if (waitingRoundsLeft != 0) {
-                    status = "*** czekanie " + std::to_string(waitingRoundsLeft) + " ***";
+                    status = "*** czekanie: " + std::to_string(waitingRoundsLeft) + " ***";
 
                     return;
                 }
