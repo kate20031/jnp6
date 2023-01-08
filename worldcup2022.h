@@ -315,6 +315,7 @@ public:
     void play() {
         unsigned short score = 0;
         float change;
+        bool isBankrupt;
 
         // Count of dies is out of range
         if (dies.size() < 2) {
@@ -334,7 +335,7 @@ public:
             score += die->roll();
         }
 
-        printf("%s  wypadło %d\n", playerName.c_str(), score);
+//        printf("%s  wypadło %d\n", playerName.c_str(), score);
 
         for (int i = 0; i < score && isAlive; i++)
         {
@@ -347,7 +348,7 @@ public:
                 squaresIt = squares.begin(); // Board is cyclic.
             }
             //
-            printf("%s   %s\n", playerName.c_str(), (*squaresIt)->getName().c_str());
+//            printf("%s   %s\n", playerName.c_str(), (*squaresIt)->getName().c_str());
 
             if (i == score - 1) {
                 waitingRoundsLeft = (*squaresIt)->tryLeave(playerName);// Player tries to start.
@@ -367,6 +368,10 @@ public:
             }
 
             if (change < 0 && money < (unsigned int)(-change)) { // Player went bankrupt :(
+                while (i < score - 1) {
+                    i++;
+                    squaresIt ++;
+                }
                 isAlive = false;
                 money = 0;
                 status = "*** bankrut ***";
