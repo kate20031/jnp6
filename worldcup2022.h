@@ -133,16 +133,13 @@ public:
         Square(std::move(name)), winValue(winValue), loseValue(loseValue), playersCounter(0) {}
 
     double stayOn() override {
+        playersCounter = (playersCounter + 1) % 3;
         // Win.
-        if (playersCounter == 0) {
-            playersCounter = (playersCounter + 1) % 3;
+        if (playersCounter == 1)
             return (double)winValue;
-        }
         // Lose.
-        else {
-            playersCounter = (playersCounter + 1) % 3;
+        else
             return (double)-loseValue;
-        }
     }
 
     // Neutral.
@@ -406,6 +403,7 @@ public:
     }
 
 private:
+    static const unsigned int initialMoney = 1000;
     String playerName;
     unsigned int money;
     String status;
@@ -423,7 +421,7 @@ public:
         std::list<std::shared_ptr<Square>> squares = std::list<std::shared_ptr<Square>>();
 
         squares.push_back(std::make_shared<SeasonBeginningSquare>("Początek sezonu"));
-        squares.push_back(std::make_shared<FriendlyGameSquare("Mecz z San Marino", 160));
+        squares.push_back(std::make_shared<FriendlyGameSquare>("Mecz z San Marino", 160));
         squares.push_back(std::make_shared<DayOffSquare>("Dzień wolny od treningu"));
         squares.push_back(std::make_shared<FriendlyGameSquare>("Mecz z Liechtensteinem", 220));
         squares.push_back(std::make_shared<YellowCardSquare>("Żółta kartka", 3));
