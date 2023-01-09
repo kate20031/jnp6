@@ -10,12 +10,11 @@
 #include <unordered_set>
 #include <utility>
 
-// TODO add exceptions!
-// TODO Finish player status (mainly waiting count).
 // TODO Add more custom types (e.g. for lists of shared pointers)
 // TODO Add const where possible.
 // TODO (later) Think about better managment of Board attributes.
 
+// TODO In separate file.
 using String = std::string;
 
 const unsigned int INITIAL_MONEY = 1000;
@@ -28,31 +27,40 @@ class Player;
 
 // TODO Add destructors for classes
 
-class DiceException : std::exception {
-public: virtual const char* what() const noexcept = 0;
+class DiceException : public std::exception {
+public: 
+    virtual const char* what() const noexcept = 0;
 };
 
-class PlayerException : std::exception {
-public: virtual const char* what() const noexcept = 0;
+class PlayerException : public std::exception {
+public: 
+    virtual const char* what() const noexcept = 0;
 };
 
-class TooManyDiceException : DiceException {
-public: const char* what() const noexcept override {
+class TooManyDiceException : public DiceException {
+public: 
+    const char* what() const noexcept override {
         return "Too many dice";
     }
 };
-class TooFewDiceException : DiceException {
-public: const char* what() const noexcept override {
+
+class TooFewDiceException : public DiceException {
+public: 
+    const char* what() const noexcept override {
         return "Too few dice";
     }
 };
-class TooManyPlayersException : PlayerException {
-public: const char* what() const noexcept override {
+
+class TooManyPlayersException : public PlayerException {
+public: 
+    const char* what() const noexcept override {
         return "Too many player";
     }
 };
-class TooFewPlayersException : PlayerException {
-public: const char* what() const noexcept override {
+
+class TooFewPlayersException : public PlayerException {
+public: 
+    const char* what() const noexcept override {
         return "Too few player";
     }
 };
@@ -60,16 +68,15 @@ public: const char* what() const noexcept override {
 // Abstract class that represents a board field;
 class Square {
 public:
-    explicit Square(String  name) :
-                                   name(std::move(name)) {}
+    explicit Square(String  name) : name(std::move(name)) {}
 
     String getName() {
         return name;
     };
 
-    virtual float stayOn() = 0;
+    virtual double stayOn() = 0;
 
-    virtual float goThrough() = 0;
+    virtual double goThrough() = 0;
 
     // Returns true only if the square was left successfully.
     virtual int tryLeave(const String& playerName) {
@@ -84,15 +91,15 @@ private:
 // Represents a board field;
 class SimpleSquare : public Square {
 public:
-    SimpleSquare(const String& name, int stayOnValue, int goThroughValue) : Square(name),
-                                                                            stayOnValue(stayOnValue), goThroughValue(goThroughValue) {}
+    SimpleSquare(const String& name, int stayOnValue, int goThroughValue) : 
+        Square(name), stayOnValue(stayOnValue), goThroughValue(goThroughValue) {}
 
-    float stayOn() override {
-        return (float)stayOnValue;
+    double stayOn() override {
+        return (double)stayOnValue;
     }
 
-    float goThrough() override {
-        return (float)goThroughValue;
+    double goThrough() override {
+        return (double)goThroughValue;
     }
 
 private:
@@ -102,48 +109,44 @@ private:
 
 class SeasonBeginningSquare : public SimpleSquare {
 public:
-    explicit SeasonBeginningSquare(const String& name) :
-                                                         SimpleSquare(name, 50, 50) {}
+    explicit SeasonBeginningSquare(const String& name) : SimpleSquare(name, 50, 50) {}
 };
 
 class DayOffSquare : public SimpleSquare {
 public:
-    explicit DayOffSquare(const String& name) :
-                                                SimpleSquare(name, 0, 0) {}
+    explicit DayOffSquare(const String& name) : SimpleSquare(name, 0, 0) {}
 };
 
 class GoalSquare : public SimpleSquare {
 public:
-    GoalSquare(const String& name, int goalBonus) :
-                                                    SimpleSquare(name, goalBonus, 0) {}
+    GoalSquare(const String& name, int goalBonus) : SimpleSquare(name, goalBonus, 0) {}
 };
 
 class PenaltyKickSquare : public SimpleSquare {
 public:
-    PenaltyKickSquare(const String& name, int goalkeeperSalary) :
-                                                                  SimpleSquare(name, -goalkeeperSalary, 0) {}
+    PenaltyKickSquare(const String& name, int goalkeeperSalary) : SimpleSquare(name, -goalkeeperSalary, 0) {}
 };
 
 class BookmakerSquare : public Square {
 public:
     BookmakerSquare(String name, int winValue, int loseValue) :
-                                                                Square(std::move(name)), winValue(winValue), loseValue(loseValue), playersCounter(0) {}
+        Square(std::move(name)), winValue(winValue), loseValue(loseValue), playersCounter(0) {}
 
-    float stayOn() override {
+    double stayOn() override {
         // Win.
         if (playersCounter == 0) {
-            return (float)winValue;
+            playersCounter = (playersCounter + 1) % 3;
+            return (double)winValue;
         }
         // Lose.
         else {
-            return (float)-loseValue;
+            playersCounter = (playersCounter + 1) % 3;
+            return (double)-loseValue;
         }
-        playersCounter = (playersCounter + 1) % 3;
     }
 
     // Neutral.
-    float goThrough() override {
-
+    double goThrough() override {
         return 0;
     }
 
@@ -153,23 +156,24 @@ private:
     int playersCounter;
 };
 
-class YellowCardSquare : public SimpleSquare { // TODO: std::map<Player, int>()
+class YellowCardSquare : public SimpleSquare {
 public:
     YellowCardSquare(const String& name, int waitingRounds) :
-                                                              SimpleSquare(name, 0, 0), waitingRounds(waitingRounds), waitingRoundsLeft() {}
+        SimpleSquare(name, 0, 0), waitingRounds(waitingRounds), waitingRoundsLeft() {}
+
     int tryLeave(const String& playerName) override {
         auto it = waitingRoundsLeft.find(playerName);
         if (it == waitingRoundsLeft.end()) { // Player starts waiting.
             waitingRoundsLeft[playerName] = waitingRounds;
-            return 3;
+            return 3; // Count of rounds the player needs to wait.
         }
         else {
-            it -> second--;
-            if (it -> second == 0) { // Time to leave.
+            it->second--;
+            if (it->second == 0) { // Time to leave.
                 waitingRoundsLeft.erase(it);
             }
         }
-        return it -> second;
+        return it->second;
     }
 
 private:
@@ -179,43 +183,40 @@ private:
 
 class GameSquare : public Square {
 public:
-    GameSquare(String name, int fee, float importance) :
-                                                         Square(std::move(name)), fee(fee), importance(importance), feeCount(0) {}
+    GameSquare(String name, int fee, double importance) :
+        Square(std::move(name)), fee(fee), importance(importance), feeCount(0) {}
 
-    float stayOn() override {
+    double stayOn() override {
         int tempFeeCount = feeCount;
         feeCount = 0;
-        return (float)(tempFeeCount * fee) * importance;
+        return (double)(tempFeeCount * fee) * importance;
     }
 
     // The player plays the match and pay the fee.
-    float goThrough() override {
+    double goThrough() override {
         feeCount++;
-        return (float)-fee;
+        return (double)-fee;
     }
 
 private:
     int fee;
-    float importance;
+    double importance;
     int feeCount;
 };
 
 class FriendlyGameSquare : public GameSquare {
 public:
-    FriendlyGameSquare(String name, int fee) :
-                                               GameSquare(std::move(name), fee, 1) {}
+    FriendlyGameSquare(String name, int fee) : GameSquare(std::move(name), fee, 1) {}
 };
 
 class PointsGameSquare : public GameSquare {
 public:
-    PointsGameSquare(String name, int fee) :
-                                             GameSquare(std::move(name), fee, 2.5) {}
+    PointsGameSquare(String name, int fee) : GameSquare(std::move(name), fee, 2.5) {}
 };
 
 class FinalGameSquare : public GameSquare {
 public:
-    FinalGameSquare(String name, int fee) :
-                                            GameSquare(std::move(name), fee, 4) {}
+    FinalGameSquare(String name, int fee) : GameSquare(std::move(name), fee, 4) {}
 };
 
 
@@ -281,7 +282,6 @@ public:
 
 class Board {
 public:
-
     Board() : squares(), dies() {}
 
     explicit Board(std::list<std::shared_ptr<Square>> squares) : squares(std::move(squares)), dies() {}
@@ -306,7 +306,8 @@ private:
 class Player {
 public:
     Player(String playerName, Board &board) :
-                                              playerName(std::move(playerName)), money(INITIAL_MONEY), status("w grze"), board(board), isAlive(true) {
+        playerName(std::move(playerName)), money(INITIAL_MONEY), status("w grze"), board(board), isAlive(true) {
+
         dies = board.getDies();
         squares = board.getSquares();
         squaresIt = squares.begin();
@@ -314,7 +315,7 @@ public:
 
     void play() {
         unsigned short score = 0;
-        float change;
+        double change;
 
         // Count of dies is out of range
         if (dies.size() < 2) {
@@ -324,7 +325,7 @@ public:
         }
 
         int waitingRoundsLeft = (*squaresIt)->tryLeave(playerName); // Player tries to start.
-                                                                   //        int waitingRoundsLeft = (*squaresIt)->getRoundsLeft(playerName);
+                                                                   
         if (waitingRoundsLeft != 0) { // Player has to wait.
             status = "*** czekanie: " + std::to_string(waitingRoundsLeft) + " ***";
             return;
@@ -346,7 +347,7 @@ public:
             if (squaresIt == squares.end()) {
                 squaresIt = squares.begin(); // Board is cyclic.
             }
-            //
+
             printf("%s   %s\n", playerName.c_str(), (*squaresIt)->getName().c_str());
 
             if (i == score - 1) {
@@ -367,6 +368,13 @@ public:
             }
 
             if (change < 0 && money < (unsigned int)(-change)) { // Player went bankrupt :(
+                while (i < score - 1) {
+                    i++;
+                    squaresIt++;
+                    if (squaresIt == squares.end()) {
+                        squaresIt = squares.begin(); // Board is cyclic.
+                    }
+                }
                 isAlive = false;
                 money = 0;
                 status = "*** bankrut ***";
@@ -414,18 +422,18 @@ public:
     WorldCup2022() : WorldCup() {
         std::list<std::shared_ptr<Square>> squares = std::list<std::shared_ptr<Square>>();
 
-        squares.push_back(std::make_shared<SeasonBeginningSquare>(getSquareName(1)));
-        squares.push_back(std::make_shared<FriendlyGameSquare>(getSquareName(2), 160));
-        squares.push_back(std::make_shared<DayOffSquare>(getSquareName(3)));
-        squares.push_back(std::make_shared<FriendlyGameSquare>(getSquareName(4), 220));
-        squares.push_back(std::make_shared<YellowCardSquare>(getSquareName(5), 3));
-        squares.push_back(std::make_shared<PointsGameSquare>(getSquareName(6), 300));
-        squares.push_back(std::make_shared<PointsGameSquare>(getSquareName(7), 280));
-        squares.push_back(std::make_shared<BookmakerSquare>(getSquareName(8), 100, 100)); // TODO
-        squares.push_back(std::make_shared<PointsGameSquare>(getSquareName(9), 250));
-        squares.push_back(std::make_shared<GoalSquare>(getSquareName(10), 120));
-        squares.push_back(std::make_shared<FinalGameSquare>(getSquareName(11), 400));
-        squares.push_back(std::make_shared<PenaltyKickSquare>(getSquareName(12), 180));
+        squares.push_back(std::make_shared<SeasonBeginningSquare>("Początek sezonu"));
+        squares.push_back(std::make_shared<FriendlyGameSquare("Mecz z San Marino", 160));
+        squares.push_back(std::make_shared<DayOffSquare>("Dzień wolny od treningu"));
+        squares.push_back(std::make_shared<FriendlyGameSquare>("Mecz z Liechtensteinem", 220));
+        squares.push_back(std::make_shared<YellowCardSquare>("Żółta kartka", 3));
+        squares.push_back(std::make_shared<PointsGameSquare>("Mecz z Meksykiem", 300));
+        squares.push_back(std::make_shared<PointsGameSquare>("Mecz z Arabią Saudyjską", 280));
+        squares.push_back(std::make_shared<BookmakerSquare>("Bukmacher", 100, 100));
+        squares.push_back(std::make_shared<PointsGameSquare>("Mecz z Argentyną", 250));
+        squares.push_back(std::make_shared<GoalSquare>("Gol", 120));
+        squares.push_back(std::make_shared<FinalGameSquare>("Mecz z Francją", 400));
+        squares.push_back(std::make_shared<PenaltyKickSquare>("Rzut karny", 180));
 
         board = Board(squares);
     }
@@ -486,26 +494,6 @@ private:
     std::list<std::shared_ptr<Player>> players;
     std::shared_ptr<ScoreBoard> scoreboard;
     std::unordered_set<String> deadPlayers;
-
-    static String getSquareName(int indexOfSquare) noexcept
-    {
-        switch (indexOfSquare)
-        {
-            case 1: return "Początek sezonu";
-            case 2: return "Mecz z San Marino";
-            case 3: return "Dzień wolny od treningu";
-            case 4: return "Mecz z Lichtensteinem";
-            case 5: return "Żółta kartka";
-            case 6: return "Mecz z Meksykiem";
-            case 7: return "Mecz z Arabią Saudyjską";
-            case 8: return "Bukmacher";
-            case 9: return "Mecz z Argentyną";
-            case 10: return "Gol";
-            case 11: return "Mecz z Francją";
-            case 12: return "Rzut karny";
-            default: return "ERROR";
-        }
-    }
 };
 
 #endif
