@@ -23,8 +23,6 @@ public:
 
         score = board->getRollScore();
 
-        printf("%s  wypadło %d\n", playerName.c_str(), score);
-
         for (int i = 0; i < score && isAlive; i++)
         {
             if (i == 0) {
