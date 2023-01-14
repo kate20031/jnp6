@@ -12,11 +12,6 @@
 #include <unordered_set>
 #include <utility>
 
-// TODO Add more custom types (e.g. for lists of shared pointers)
-// TODO Add const where possible.
-// TODO (later) Think about better management of Board attributes.
-
-// TODO In separate file.
 class ScoreBoard;
 
 // TODO Add destructors for classes
@@ -89,13 +84,13 @@ public:
         squares.push_back(std::make_shared<FinalGameSquare>("Mecz z Francją", 400));
         squares.push_back(std::make_shared<PenaltyKickSquare>("Rzut karny", 180));
 
-        board = Board(squares);
+        board = std::make_shared<Board>(squares);
     }
 
     ~WorldCup2022() override = default;
 
     void addDie(std::shared_ptr<Die> die) override {
-        board.addDie(die);
+        board->addDie(die);
     }
 
     void addPlayer(std::string const &name) override {
@@ -144,7 +139,7 @@ public:
     }
 
 private:
-    Board board;
+    std::shared_ptr<Board> board;
     std::list<std::shared_ptr<Player>> players;
     std::shared_ptr<ScoreBoard> scoreboard;
     std::unordered_set<std::string> deadPlayers;

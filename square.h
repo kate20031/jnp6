@@ -5,30 +5,30 @@
 #include <map>
 #include <string>
 
-//// Abstract class that represents a board field;
+// Abstract class that represents a board field;
 class Square {
 public:
     explicit Square(std::string  name) : name(std::move(name)) {}
 
-    std::string getName() {
+    std::string getName() const {
         return name;
-    };
+    }
 
     virtual double stayOn() = 0;
 
     virtual double goThrough() = 0;
 
-    // Returns true only if the square was left successfully.
+    // Returns the number of rounds the player needs to wait.
     virtual int tryLeave(const std::string& playerName) {
         std::cout << "Leaving square for player " << playerName << std::endl;
         return 0;
     }
 
 private:
-    std::string name;
+    const std::string name;
 };
 
-// Represents a board field;
+// Represents the board field with basic functionalities;
 class SimpleSquare : public Square {
 public:
     SimpleSquare(const std::string& name, int stayOnValue, int goThroughValue) :

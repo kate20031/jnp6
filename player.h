@@ -7,24 +7,12 @@
 
 class Player {
 public:
-    Player(std::string playerName, Board &board) :
-        playerName(std::move(playerName)), money(initialMoney), status("w grze"), board(board), isAlive(true) {
-
-        dies = board.getDies();
-        squares = board.getSquares();
-        squaresIt = squares.begin();
-    }
+    Player(std::string playerName, std::shared_ptr<Board> board) :
+        playerName(std::move(playerName)), money(initialMoney), status("w grze"), board(board), isAlive(true), squaresIt(board->getBeginSquares()) {}
 
     void play() {
-        unsigned short score = 0;
+        unsigned short score;
         double change;
-
-        // Count of dies is out of range
-        if (dies.size() < 2) {
-            throw TooFewDiceException();
-        } else if (dies.size() > 2) {
-            throw TooManyDiceException();
-        }
 
         int waitingRoundsLeft = (*squaresIt)->tryLeave(playerName); // Player tries to start.
 
@@ -33,9 +21,7 @@ public:
             return;
         }
 
-        for (const auto& die : dies) {
-            score += die->roll();
-        }
+        score = board->getRollScore();
 
         printf("%s  wypadło %d\n", playerName.c_str(), score);
 
@@ -45,23 +31,17 @@ public:
                 status = "w grze";
             }
 
-            squaresIt++; // Player goes to the next square in the board.
-            if (squaresIt == squares.end()) {
-                squaresIt = squares.begin(); // Board is cyclic.
-            }
+            board->setNextSquareIt(squaresIt);
 
-            if (i == score - 1) {
-                waitingRoundsLeft = (*squaresIt)->tryLeave(playerName);// Player tries to start.
+            if (i == score - 1) { // The player ends his round.
+                change = (*squaresIt)->stayOn();
 
+                waitingRoundsLeft = (*squaresIt)->tryLeave(playerName); // Player tries to start (for the next round).
                 if (waitingRoundsLeft != 0) {
                     status = "*** czekanie: " + std::to_string(waitingRoundsLeft) + " ***";
-
                     return;
                 }
-            }
 
-            if (i == score - 1) { // Player ends his round.
-                change = (*squaresIt)->stayOn();
             }
             else {
                 change = (*squaresIt)->goThrough();
@@ -70,10 +50,7 @@ public:
             if (change < 0 && money < (unsigned int)(-change)) { // Player went bankrupt :(
                 while (i < score - 1) {
                     i++;
-                    squaresIt++;
-                    if (squaresIt == squares.end()) {
-                        squaresIt = squares.begin(); // Board is cyclic.
-                    }
+                    board->setNextSquareIt(squaresIt);
                 }
                 isAlive = false;
                 money = 0;
@@ -85,11 +62,11 @@ public:
         }
     }
 
-    std::string getName() {
+    std::string getName() const {
         return playerName;
     }
 
-    std::string getSquareName() {
+    std::string getSquareName() const {
         return (*squaresIt)->getName();
     }
 
@@ -97,7 +74,7 @@ public:
         return money;
     }
 
-    std::string getStatus() {
+    std::string getStatus() const {
         return status;
     }
 
@@ -110,10 +87,9 @@ private:
     std::string playerName;
     unsigned int money;
     std::string status;
-    Board board;
+    std::shared_ptr<Board> board;
     bool isAlive;
-    std::list<std::shared_ptr<Square>>::iterator squaresIt;
-    std::list<std::shared_ptr<Die>> dies;
+    std::list<std::shared_ptr<Square>>::const_iterator squaresIt;
     std::list<std::shared_ptr<Square>> squares;
 };
 
