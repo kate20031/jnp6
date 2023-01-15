@@ -24,6 +24,16 @@ public:
 
         score = board->getRollScore();
 
+        //std::cerr << "Gracz: " << playerName << " wyrzucil: " << score << std::endl;
+
+        if (score == 0) { // The player again stays on its current sqare.
+            change = (*squaresIt)->stayOn(money);
+            if (change < 0 && money < (unsigned int)(-change)) // The player went bankrupt :(
+                setBankrupt();
+            else
+                money += static_cast<unsigned int>(change);
+        }
+
         for (int i = 0; i < score && isAlive; i++)
         {
             if (i == 0) {
@@ -33,7 +43,7 @@ public:
             board->setNextSquareIt(squaresIt);
 
             if (i == score - 1) { // The player ends his round.
-                change = (*squaresIt)->stayOn();
+                change = (*squaresIt)->stayOn(money);
 
                 // The player tries to start (for the next round - to check whether it will be possible).
                 waitingRoundsLeft = (*squaresIt)->tryLeave(playerName);
@@ -44,7 +54,7 @@ public:
 
             }
             else { // The player continues playing.
-                change = (*squaresIt)->goThrough();
+                change = (*squaresIt)->goThrough(money);
             }
 
             if (change < 0 && money < (unsigned int)(-change)) { // The player went bankrupt :(
@@ -52,9 +62,7 @@ public:
                     i++;
                     board->setNextSquareIt(squaresIt);
                 }
-                isAlive = false;
-                money = 0;
-                status = "*** bankrut ***";
+                setBankrupt();
             }
             else {
                 money += static_cast<unsigned int>(change);
@@ -90,6 +98,12 @@ private:
     std::shared_ptr<Board> board;
     bool isAlive;
     std::list<std::shared_ptr<Square>>::const_iterator squaresIt;
+
+    void setBankrupt() {
+        isAlive = false;
+        money = 0;
+        status = "*** bankrut ***";
+    }
 };
 
 #endif//WORLDCUP_PLAYER_H

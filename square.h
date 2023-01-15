@@ -16,9 +16,9 @@ public:
         return name;
     }
 
-    virtual double stayOn() = 0;
+    virtual double stayOn(int playersMoney) = 0;
 
-    virtual double goThrough() = 0;
+    virtual double goThrough(int playersMoney) = 0;
 
     // Returns the number of rounds the player needs to wait.
     virtual int tryLeave([[maybe_unused]] const std::string& playerName) {
@@ -35,11 +35,11 @@ public:
     SimpleSquare(const std::string& name, int stayOnValue, int goThroughValue) :
         Square(name), stayOnValue(stayOnValue), goThroughValue(goThroughValue) {}
 
-    double stayOn() override {
+    double stayOn([[maybe_unused]] int playersMoney) override {
         return (double)stayOnValue;
     }
 
-    double goThrough() override {
+    double goThrough([[maybe_unused]] int playersMoney) override {
         return (double)goThroughValue;
     }
 
@@ -73,7 +73,7 @@ public:
     BookmakerSquare(std::string name, int winValue, int loseValue) :
         Square(std::move(name)), winValue(winValue), loseValue(loseValue), playersCounter(0) {}
 
-    double stayOn() override {
+    double stayOn([[maybe_unused]] int playersMoney) override {
         playersCounter = (playersCounter + 1) % 3;
         // Win.
         if (playersCounter == 1)
@@ -84,7 +84,7 @@ public:
     }
 
     // Neutral.
-    double goThrough() override {
+    double goThrough([[maybe_unused]] int playersMoney) override {
         return 0;
     }
 
@@ -121,24 +121,27 @@ private:
 class GameSquare : public Square {
 public:
     GameSquare(std::string name, int fee, double importance) :
-        Square(std::move(name)), fee(fee), importance(importance), feeCount(0) {}
+        Square(std::move(name)), fee(fee), importance(importance), feeSum(0) {}
 
-    double stayOn() override {
-        int tempFeeCount = feeCount;
-        feeCount = 0;
-        return (double)(tempFeeCount * fee) * importance;
+    double stayOn([[maybe_unused]] int playersMoney) override {
+        int tempFeeSum = feeSum;
+        feeSum = 0;
+        return (double)(tempFeeSum) * importance;
     }
 
     // The player plays the match and pay the fee.
-    double goThrough() override {
-        feeCount++;
+    double goThrough(int playersMoney) override {
+        if (playersMoney >= fee)
+            feeSum += fee;
+        else
+            feeSum += playersMoney;
         return (double)-fee;
     }
 
 private:
     int fee;
     double importance;
-    int feeCount;
+    int feeSum = 0;
 };
 
 class FriendlyGameSquare : public GameSquare {
