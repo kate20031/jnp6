@@ -14,8 +14,6 @@
 
 class ScoreBoard;
 
-// TODO Add destructors for classes
-
 // Reprezentuje interfejs gry WorldCup.
 // Konkretną implementacją jest WorldCup2022.
 // WorldCup2022 ma mieć konstruktor bezparametrowy.
@@ -85,6 +83,8 @@ public:
         squares.push_back(std::make_shared<PenaltyKickSquare>("Rzut karny", 180));
 
         board = std::make_shared<Board>(squares);
+
+        deadPlayersCount = 0;
     }
 
     ~WorldCup2022() override = default;
@@ -110,7 +110,7 @@ public:
             throw TooManyPlayersException();
         }
 
-        for (unsigned int i = 1; i <= rounds && deadPlayers.size() < players.size() - 1; i++) {
+        for (unsigned int i = 1; i <= rounds && deadPlayersCount < players.size() - 1; i++) {
             scoreboard->onRound(i - 1);
 
             for (const auto& player : players)
@@ -123,7 +123,7 @@ public:
                                    player->getSquareName(),player->getMoney());
 
                 if(!player->getIsAlive())
-                    deadPlayers.insert(player->getName());
+                    deadPlayersCount++;
             }
 
         }
@@ -142,7 +142,7 @@ private:
     std::shared_ptr<Board> board;
     std::list<std::shared_ptr<Player>> players;
     std::shared_ptr<ScoreBoard> scoreboard;
-    std::unordered_set<std::string> deadPlayers;
+    long unsigned int deadPlayersCount;
 };
 
 #endif

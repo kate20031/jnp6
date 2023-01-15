@@ -5,10 +5,12 @@
 #include <map>
 #include <string>
 
-// Abstract class that represents a board field;
+// Abstract class that represents the board field;
 class Square {
 public:
     explicit Square(std::string  name) : name(std::move(name)) {}
+
+    virtual ~Square() = default;
 
     std::string getName() const {
         return name;
@@ -19,8 +21,7 @@ public:
     virtual double goThrough() = 0;
 
     // Returns the number of rounds the player needs to wait.
-    virtual int tryLeave(const std::string& playerName) {
-        std::cout << "Leaving square for player " << playerName << std::endl;
+    virtual int tryLeave([[maybe_unused]] const std::string& playerName) {
         return 0;
     }
 
@@ -28,7 +29,7 @@ private:
     const std::string name;
 };
 
-// Represents the board field with basic functionalities;
+// Represents the board field with basic functionalities.
 class SimpleSquare : public Square {
 public:
     SimpleSquare(const std::string& name, int stayOnValue, int goThroughValue) :
@@ -100,15 +101,14 @@ public:
 
     int tryLeave(const std::string& playerName) override {
         auto it = waitingRoundsLeft.find(playerName);
-        if (it == waitingRoundsLeft.end()) { // Player starts waiting.
+        if (it == waitingRoundsLeft.end()) { // The player starts waiting.
             waitingRoundsLeft[playerName] = waitingRounds;
             return 3; // Count of rounds the player needs to wait.
         }
-        else {
+        else { // The player has already been waiting.
             it->second--;
-            if (it->second == 0) { // Time to leave.
+            if (it->second == 0) // The player stops waiting.
                 waitingRoundsLeft.erase(it);
-            }
         }
         return it->second;
     }

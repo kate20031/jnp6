@@ -8,7 +8,7 @@
 
 class Dice {
 public:
-    Dice() : dice() {}
+    explicit Dice() : dice() {}
 
     void addDie(const std::shared_ptr<Die>& die) {
         dice.push_back(die);

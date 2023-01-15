@@ -8,15 +8,16 @@
 class Player {
 public:
     Player(std::string playerName, std::shared_ptr<Board> board) :
-        playerName(std::move(playerName)), money(initialMoney), status("w grze"), board(board), isAlive(true), squaresIt(board->getBeginSquares()) {}
+        playerName(std::move(playerName)), money(initialMoney), status("w grze"), board(board), 
+            isAlive(true), squaresIt(board->getBeginSquares()) {}
 
     void play() {
         unsigned short score;
         double change;
 
-        int waitingRoundsLeft = (*squaresIt)->tryLeave(playerName); // Player tries to start.
+        int waitingRoundsLeft = (*squaresIt)->tryLeave(playerName); // The player tries to start.
 
-        if (waitingRoundsLeft != 0) { // Player has to wait.
+        if (waitingRoundsLeft != 0) { // The player has to wait.
             status = "*** czekanie: " + std::to_string(waitingRoundsLeft) + " ***";
             return;
         }
@@ -34,19 +35,20 @@ public:
             if (i == score - 1) { // The player ends his round.
                 change = (*squaresIt)->stayOn();
 
-                waitingRoundsLeft = (*squaresIt)->tryLeave(playerName); // Player tries to start (for the next round).
-                if (waitingRoundsLeft != 0) {
+                // The player tries to start (for the next round - to check whether it will be possible).
+                waitingRoundsLeft = (*squaresIt)->tryLeave(playerName);
+                if (waitingRoundsLeft != 0) { // The player starts waiting.
                     status = "*** czekanie: " + std::to_string(waitingRoundsLeft) + " ***";
                     return;
                 }
 
             }
-            else {
+            else { // The player continues playing.
                 change = (*squaresIt)->goThrough();
             }
 
-            if (change < 0 && money < (unsigned int)(-change)) { // Player went bankrupt :(
-                while (i < score - 1) {
+            if (change < 0 && money < (unsigned int)(-change)) { // The player went bankrupt :(
+                while (i < score - 1) { // Set the sqaure to the player's destination.
                     i++;
                     board->setNextSquareIt(squaresIt);
                 }
@@ -88,7 +90,6 @@ private:
     std::shared_ptr<Board> board;
     bool isAlive;
     std::list<std::shared_ptr<Square>>::const_iterator squaresIt;
-    std::list<std::shared_ptr<Square>> squares;
 };
 
 #endif//WORLDCUP_PLAYER_H

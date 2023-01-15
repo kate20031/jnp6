@@ -5,11 +5,15 @@
 
 class DiceException : public std::exception {
 public:
+    virtual ~DiceException() = default;
+
     virtual const char* what() const noexcept = 0;
 };
 
 class PlayerException : public std::exception {
 public:
+    virtual ~PlayerException() = default;
+
     virtual const char* what() const noexcept = 0;
 };
 
