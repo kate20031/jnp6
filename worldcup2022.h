@@ -101,7 +101,20 @@ public:
         this->scoreboard = scoreboard;
     }
 
+    std::shared_ptr<Player> findWinner(std::list<std::shared_ptr<Player>> players) {
+        std::shared_ptr<Player> winner = nullptr;
+
+        for (const auto& player : players) {
+          if (winner == nullptr || player->getMoney() > winner -> getMoney()) {
+            winner = player;// New potential winner.
+          }
+        }
+
+        return winner;
+    }
+
     void play(unsigned int rounds) override {
+        std::shared_ptr<Player> winner;
 
         // Count of players is out of range
         if (players.size() < 2) {
@@ -123,17 +136,17 @@ public:
 
                 if(!player->getIsAlive())
                     deadPlayersCount++;
+
+                if (deadPlayersCount >= players.size() - 1) {
+                    winner = findWinner(players);
+                    scoreboard->onWin(winner->getName());
+                    return;
+                }
             }
 
         }
 
-        std::shared_ptr<Player> winner = nullptr;
-        for (const auto& player : players) {
-            if (winner == nullptr || player->getMoney() > winner -> getMoney()) {
-                winner = player;// New potential winner.
-            }
-        }
-
+        winner = findWinner(players);
         scoreboard->onWin(winner->getName());
     }
 
