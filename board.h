@@ -31,8 +31,6 @@ public:
             squareIt = squares.begin(); // The board is cyclic.
     }
 
-
-
 private:
     std::list<std::shared_ptr<Square>> squares;
     Dice dice;
