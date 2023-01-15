@@ -3,13 +3,11 @@
 
 #include "exceptions.h"
 #include "player.h"
-#include <cstring>
 #include <iostream>
 #include <list>
 #include <map>
 #include <memory>
 #include <string>
-#include <unordered_set>
 #include <utility>
 
 class ScoreBoard;
