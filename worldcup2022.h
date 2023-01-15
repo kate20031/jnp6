@@ -113,8 +113,7 @@ public:
         for (unsigned int i = 1; i <= rounds && deadPlayers.size() < players.size() - 1; i++) {
             scoreboard->onRound(i - 1);
 
-            for (const auto& player : players)
-            {
+            for (const auto& player : players) {
                 if(!player->getIsAlive())
                     continue;
 

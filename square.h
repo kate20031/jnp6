@@ -20,7 +20,6 @@ public:
 
     // Returns the number of rounds the player needs to wait.
     virtual int tryLeave(const std::string& playerName) {
-        std::cout << "Leaving square for player " << playerName << std::endl;
         return 0;
     }
 
